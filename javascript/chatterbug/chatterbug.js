@@ -3,9 +3,7 @@ var Chatterbug = {
   config: ChatterbugConfig,
 
   jid_to_id: function (jid) {
-    return Strophe.getBareJidFromJid(jid)
-    .replace("@", "-")
-    .replace(".", "-");
+    return Strophe.getBareJidFromJid(jid).replace(/@|\./, "-");
   },
 
   on_roster: function (iq) {
@@ -227,14 +225,54 @@ var Chatterbug = {
     } else {
       $('#roster-area ul').append(elem);
     }
+  },
+
+  createMainPanel: function(){
+    var label   = $(document.createElement('a')).attr('href', '#').text('Chatterbug')
+    var status  = $(document.createElement('span')).addClass('status');
+    var handle  = $(document.createElement('div')).addClass('handle')
+      .append(label)
+      .append(status);
+
+    var presence    = $(document.createElement('div')).addClass('presence');
+    var roster      = $(document.createElement('ul')).addClass('roster');
+    var mainPanel   = $(document.createElement('div'))
+      .attr('id', 'chatterbug-main-panel')
+      .addClass('chatterbug-panel')
+      .append(handle)
+      .append(presence)
+      .append(roster);
+
+    $('body').append(mainPanel);
+
+    mainPanel.tabSlideOut({
+      tabHandle: handle,
+      tabLocation: 'bottom',
+      speed: 300,
+      leftPos: '200px',
+      fixedPosition: true
+    });
+
+    // Adjust some weird TabSlideOut CSS
+    handle.css({textIndent: '0px'});
+    mainPanel.css({lineHeight: 'default'});
+  },
+
+  connect: function(){
+    Chatterbug.connection = new Strophe.Connection(Chatterbug.config.bosh_uri);
+    Chatterbug.connection.connect(Chatterbug.config.jid, Chatterbug.config.password, function(status){
+      if (status === Strophe.Status.CONNECTED) {
+        $(document).trigger('connected');
+      } else if (status === Strophe.Status.DISCONNECTED) {
+        $(document).trigger('disconnected');
+      }
+    });
   }
 };
 
 $(document).ready(function () {
-  $(document).trigger('connect', {
-    jid: Chatterbug.config.jid,
-    password: Chatterbug.config.password
-  });
+  Chatterbug.createMainPanel();
+  Chatterbug.connect();
   
   $('#contact_dialog').dialog({
     autoOpen: false,
@@ -397,20 +435,6 @@ $(document).ready(function () {
   $('#new-chat').click(function () {
     $('#chat_dialog').dialog('open');
   });
-});
-
-$(document).bind('connect', function (ev, data) {
-  var conn = new Strophe.Connection('http://localhost:5280/http-bind');
-
-  conn.connect(data.jid, data.password, function (status) {
-    if (status === Strophe.Status.CONNECTED) {
-      $(document).trigger('connected');
-    } else if (status === Strophe.Status.DISCONNECTED) {
-      $(document).trigger('disconnected');
-    }
-  });
-
-  Chatterbug.connection = conn;
 });
 
 $(document).bind('connected', function () {
