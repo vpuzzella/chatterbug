@@ -7,10 +7,15 @@ var Chatterbug = {
     return Strophe.getBareJidFromJid(jid).replace(/@|\./, "-");
   },
 
+  localPartFromJid: function(jid){
+    return jid.replace(/@.*/, '');
+  },
+
   connectionStatuses: $(['disconnected', 'connecting', 'connected', 'error', 'authenticating', 'disconnecting', 'authfail', 'connfail']),
 
   createMainPanel: function(){
     var label   = $(document.createElement('a')).attr('href', '#').text('Chatterbug');
+    
     var status  = $(document.createElement('span')).addClass('connection-status')
       .append($(document.createElement('label')));
       
@@ -18,8 +23,21 @@ var Chatterbug = {
       .append(label)
       .append(status);
 
-    var presence    = $(document.createElement('div')).addClass('presence');
+    var presenceSelector = $(document.createElement('select'))
+      .append("<option>Available</option><option value='unavailable'>Unavailable</option>")
+      .change(function(){
+        if(!Chatterbug.connection) return;
+        Chatterbug.connection.send($pres({type: $(this).find(':selected').val()}));
+      });
+      
+    var presence = $(document.createElement('div'))
+      .addClass('presence')
+      .append($(document.createElement('label'))
+        .text(Chatterbug.localPartFromJid(Chatterbug.config.jid) + ':'))
+      .append(presenceSelector);
+      
     var roster      = $(document.createElement('ul')).addClass('roster');
+
     var mainPanel   = $(document.createElement('div'))
       .attr('id', 'chatterbug-main-panel')
       .addClass('chatterbug-panel')
@@ -60,10 +78,14 @@ var Chatterbug = {
 
   onConnected: function(){
     Chatterbug.updateConnectionStatus('connected');
+    
+    Chatterbug.connection.addHandler(Chatterbug.onPresence,       null,               "presence"          );
+    Chatterbug.connection.addHandler(Chatterbug.onRosterChanged,  "jabber:iq:roster", "iq",       "set"   );
+    Chatterbug.connection.addHandler(Chatterbug.onMessage,        null,               "message",  "chat"  );
+
     var iq = $iq({type: 'get'}).c('query', {xmlns: 'jabber:iq:roster'});
-    Chatterbug.connection.sendIQ(iq, Chatterbug.on_roster);
-    Chatterbug.connection.addHandler(Chatterbug.on_roster_changed, "jabber:iq:roster", "iq", "set");
-    Chatterbug.connection.addHandler(Chatterbug.on_message, null, "message", "chat");
+    Chatterbug.connection.sendIQ(iq, Chatterbug.onRoster);
+    Chatterbug.connection.send($pres());
   },
 
   onDisconnected: function(){
@@ -98,7 +120,7 @@ var Chatterbug = {
     Chatterbug.onDisconnected();
   },
 
-  on_roster: function (iq) {
+  onRoster: function (iq) {
     $(iq).find('item').each(function () {
       var jid = $(this).attr('jid');
       var name = $(this).attr('name') || jid;
@@ -116,15 +138,11 @@ var Chatterbug = {
 
       Chatterbug.insert_contact(contact);
     });
-
-    // set up presence handler and send initial presence
-    Chatterbug.connection.addHandler(Chatterbug.on_presence, null, "presence");
-    Chatterbug.connection.send($pres());
   },
 
   pending_subscriber: null,
 
-  on_presence: function (presence) {
+  onPresence: function (presence) {
     var ptype = $(presence).attr('type');
     var from = $(presence).attr('from');
     var jid_id = Chatterbug.jidToDomId(from);
@@ -163,7 +181,7 @@ var Chatterbug = {
     return true;
   },
 
-  on_roster_changed: function (iq) {
+  onRosterChanged: function (iq) {
     $(iq).find('item').each(function () {
       var sub = $(this).attr('subscription');
       var jid = $(this).attr('jid');
@@ -196,7 +214,7 @@ var Chatterbug = {
     return true;
   },
 
-  on_message: function (message) {
+  onMessage: function (message) {
     var full_jid = $(message).attr('from');
     var jid = Strophe.getBareJidFromJid(full_jid);
     var jid_id = Chatterbug.jidToDomId(jid);
