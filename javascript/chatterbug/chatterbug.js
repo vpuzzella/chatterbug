@@ -15,10 +15,10 @@ var Chatterbug = {
 
   createMainPanel: function(){
     var label   = $(document.createElement('a')).attr('href', '#').text('Chatterbug');
-    
+
     var status  = $(document.createElement('span')).addClass('connection-status')
       .append($(document.createElement('label')));
-      
+
     var handle  = $(document.createElement('div')).addClass('handle')
       .append(label)
       .append(status);
@@ -29,30 +29,37 @@ var Chatterbug = {
         if(!Chatterbug.connection) return;
         Chatterbug.connection.send($pres({type: $(this).find(':selected').val()}));
       });
-      
+
     var presence = $(document.createElement('div'))
       .addClass('presence')
       .append($(document.createElement('label'))
         .text(Chatterbug.localPartFromJid(Chatterbug.config.jid) + ':'))
       .append(presenceSelector);
-      
+
     var roster      = $(document.createElement('ul')).addClass('roster');
 
-    var mainPanel   = $(document.createElement('div'))
+    Chatterbug.mainPanel = $(document.createElement('div'))
       .attr('id', 'chatterbug-main-panel')
       .addClass('chatterbug-panel')
       .append(handle)
       .append(presence)
       .append(roster)
       .extend({
+        handle: handle,
         connectionStatus: status,
         presence: presence,
         roster: roster});
 
-    $('body').append(mainPanel);
+    $('body').append(Chatterbug.updateMainPanel);
 
-    mainPanel.tabSlideOut({
-      tabHandle: handle,
+    return Chatterbug.updateMainPanel();
+  },
+
+  updateMainPanel: function(){
+    Chatterbug.mainPanel.unbind();
+    Chatterbug.mainPanel.handle.unbind();
+    Chatterbug.mainPanel.tabSlideOut({
+      tabHandle: Chatterbug.mainPanel.handle,
       tabLocation: 'bottom',
       speed: 300,
       leftPos: '200px',
@@ -60,10 +67,10 @@ var Chatterbug = {
     });
 
     // Adjust some weird TabSlideOut CSS
-    handle.css({textIndent: '0px'});
-    mainPanel.css({lineHeight: 'default'});
+    Chatterbug.mainPanel.handle.css({textIndent: '0px'});
+    //Chatterbug.mainPanel.css({lineHeight: 'default'});
 
-    return Chatterbug.mainPanel = mainPanel;
+    return Chatterbug.mainPanel;
   },
 
   updateConnectionStatus: function(status){
@@ -136,11 +143,50 @@ var Chatterbug = {
         jid +
         "</div></div></li>");
 
-      Chatterbug.insert_contact(contact);
+      Chatterbug.insertContact(contact);
     });
   },
 
   pending_subscriber: null,
+
+//  onPresence: function (presence) {
+//    var ptype = $(presence).attr('type');
+//    var from = $(presence).attr('from');
+//    var jid_id = Chatterbug.jidToDomId(from);
+//
+//    if (ptype === 'subscribe') {
+//      // populate pending_subscriber, the approve-jid span, and
+//      // open the dialog
+//      Chatterbug.pending_subscriber = from;
+//      $('#approve-jid').text(Strophe.getBareJidFromJid(from));
+//      $('#approve_dialog').dialog('open');
+//    } else if (ptype !== 'error') {
+//      var contact = $('#roster-area li#' + jid_id + ' .roster-contact')
+//      .removeClass("online")
+//      .removeClass("away")
+//      .removeClass("offline");
+//      if (ptype === 'unavailable') {
+//        contact.addClass("offline");
+//      } else {
+//        var show = $(presence).find("show").text();
+//        if (show === "" || show === "chat") {
+//          contact.addClass("online");
+//        } else {
+//          contact.addClass("away");
+//        }
+//      }
+//
+//      var li = contact.parent();
+//      li.remove();
+//      Chatterbug.insertContact(li);
+//    }
+//
+//    // reset addressing for user since their presence changed
+//    var jid_id = Chatterbug.jidToDomId(from);
+//    $('#chat-' + jid_id).data('jid', Strophe.getBareJidFromJid(from));
+//
+//    return true;
+//  },
 
   onPresence: function (presence) {
     var ptype = $(presence).attr('type');
@@ -154,7 +200,7 @@ var Chatterbug = {
       $('#approve-jid').text(Strophe.getBareJidFromJid(from));
       $('#approve_dialog').dialog('open');
     } else if (ptype !== 'error') {
-      var contact = $('#roster-area li#' + jid_id + ' .roster-contact')
+      var contact = Chatterbug.mainPanel.roster.find('li#' + jid_id + ' .roster-contact')
       .removeClass("online")
       .removeClass("away")
       .removeClass("offline");
@@ -171,7 +217,7 @@ var Chatterbug = {
 
       var li = contact.parent();
       li.remove();
-      Chatterbug.insert_contact(li);
+      Chatterbug.insertContact(li);
     }
 
     // reset addressing for user since their presence changed
@@ -206,7 +252,7 @@ var Chatterbug = {
         if ($('#' + jid_id).length > 0) {
           $('#' + jid_id).replaceWith(contact_html);
         } else {
-          Chatterbug.insert_contact(contact_html);
+          Chatterbug.insertContact(contact_html);
         }
       }
     });
@@ -303,11 +349,45 @@ var Chatterbug = {
     return 0;
   },
 
-  insert_contact: function (elem) {
+//  insertContact: function (elem) {
+//    var jid = elem.find('.roster-jid').text();
+//    var pres = Chatterbug.presence_value(elem.find('.roster-contact'));
+//
+//    var contacts = $('#roster-area li');
+//
+//    if (contacts.length > 0) {
+//      var inserted = false;
+//      contacts.each(function () {
+//        var cmp_pres = Chatterbug.presence_value(
+//          $(this).find('.roster-contact'));
+//        var cmp_jid = $(this).find('.roster-jid').text();
+//
+//        if (pres > cmp_pres) {
+//          $(this).before(elem);
+//          inserted = true;
+//          return false;
+//        } else {
+//          if (jid < cmp_jid) {
+//            $(this).before(elem);
+//            inserted = true;
+//            return false;
+//          }
+//        }
+//      });
+//
+//      if (!inserted) {
+//        $('#roster-area ul').append(elem);
+//      }
+//    } else {
+//      $('#roster-area ul').append(elem);
+//    }
+//  },
+
+  insertContact: function (elem) {
     var jid = elem.find('.roster-jid').text();
     var pres = Chatterbug.presence_value(elem.find('.roster-contact'));
-        
-    var contacts = $('#roster-area li');
+
+    var contacts = Chatterbug.mainPanel.roster.find('li');
 
     if (contacts.length > 0) {
       var inserted = false;
@@ -330,11 +410,12 @@ var Chatterbug = {
       });
 
       if (!inserted) {
-        $('#roster-area ul').append(elem);
+        Chatterbug.mainPanel.roster.append(elem);
       }
     } else {
-      $('#roster-area ul').append(elem);
+      Chatterbug.mainPanel.roster.append(elem);
     }
+    Chatterbug.updateMainPanel();
   }
 };
 
