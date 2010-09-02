@@ -88,3 +88,33 @@ h1 {
 .offline {
     color: #ccc;
 }
+
+.chatterbug-panel{
+  border: 1px solid #000000;
+  width: 201px;
+  position: fixed;
+  right: 10px;
+  bottom: 0px;
+
+}
+
+.chatterbug-panel .content{
+  border-bottom: 1px solid #000000
+}
+
+#chatterbug-main-panel.disconnected .connection-status,
+#chatterbug-main-panel.error        .connection-status,
+#chatterbug-main-panel.authfail     .connection-status,
+#chatterbug-main-panel.connfail     .connection-status{
+  color: red;
+}
+
+#chatterbug-main-panel.connecting     .connection-status,
+#chatterbug-main-panel.authenticating .connection-status,
+#chatterbug-main-panel.disconnecting  .connection-status{
+  color: blue;
+}
+
+#chatterbug-main-panel.connected  .connection-status{
+  color: green;
+}

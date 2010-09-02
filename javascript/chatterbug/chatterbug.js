@@ -11,18 +11,7 @@ var Chatterbug = {
     return jid.replace(/@.*/, '');
   },
 
-  connectionStatuses: $(['disconnected', 'connecting', 'connected', 'error', 'authenticating', 'disconnecting', 'authfail', 'connfail']),
-
   createMainPanel: function(){
-    var label   = $(document.createElement('a')).attr('href', '#').text('Chatterbug');
-
-    var status  = $(document.createElement('span')).addClass('connection-status')
-      .append($(document.createElement('label')));
-
-    var handle  = $(document.createElement('div')).addClass('handle')
-      .append(label)
-      .append(status);
-
     var presenceSelector = $(document.createElement('select'))
       .append("<option>Available</option><option value='unavailable'>Unavailable</option>")
       .change(function(){
@@ -36,51 +25,53 @@ var Chatterbug = {
         .text(Chatterbug.localPartFromJid(Chatterbug.config.jid) + ':'))
       .append(presenceSelector);
 
-    var roster      = $(document.createElement('ul')).addClass('roster');
+    var roster  = $(document.createElement('ul')).addClass('roster');
+
+    var content = $(document.createElement('div'))
+      .addClass('content')
+      .css('display', 'none')
+      .append(presence)
+      .append(roster)
+
+    var label = $(document.createElement('span')).text('Chat:');
+
+    var status = $(document.createElement('span')).addClass('connection-status')
+      .append($(document.createElement('label')));
+
+    var handle = $(document.createElement('div')).addClass('handle')
+      .append(label)
+      .append(status)
+      .click(function(){
+        Chatterbug.mainPanel.content.toggle();
+      });
 
     Chatterbug.mainPanel = $(document.createElement('div'))
       .attr('id', 'chatterbug-main-panel')
       .addClass('chatterbug-panel')
+      .append(content)
       .append(handle)
-      .append(presence)
-      .append(roster)
       .extend({
-        handle: handle,
-        connectionStatus: status,
+        content: content,
         presence: presence,
-        roster: roster});
-
-    $('body').append(Chatterbug.updateMainPanel);
-
-    return Chatterbug.updateMainPanel();
-  },
-
-  updateMainPanel: function(){
-    Chatterbug.mainPanel.unbind();
-    Chatterbug.mainPanel.handle.unbind();
-    Chatterbug.mainPanel.tabSlideOut({
-      tabHandle: Chatterbug.mainPanel.handle,
-      tabLocation: 'bottom',
-      speed: 300,
-      leftPos: '200px',
-      fixedPosition: true
-    });
-
-    // Adjust some weird TabSlideOut CSS
-    Chatterbug.mainPanel.handle.css({textIndent: '0px'});
-    //Chatterbug.mainPanel.css({lineHeight: 'default'});
+        roster: roster,
+        handle: handle,
+        connectionStatus: status
+      }
+    );
+      
+    $('body').append(Chatterbug.mainPanel);
 
     return Chatterbug.mainPanel;
   },
 
   updateConnectionStatus: function(status){
-    Chatterbug.connectionStatuses.each(function(i, s){
-      Chatterbug.mainPanel.connectionStatus.removeClass(s)
+    $(['disconnected', 'connecting', 'connected', 'error', 'authenticating', 'disconnecting', 'authfail', 'connfail']).each(function(i, s){
+      Chatterbug.mainPanel.removeClass(s)
     });
-    Chatterbug.mainPanel.connectionStatus
-      .addClass(status)
-      .find('label')
-      .text('(' + status + ')');
+    Chatterbug.mainPanel.addClass(status)
+      .connectionStatus
+        .find('label')
+        .text(status);
   },
 
   onConnected: function(){
@@ -415,7 +406,6 @@ var Chatterbug = {
     } else {
       Chatterbug.mainPanel.roster.append(elem);
     }
-    Chatterbug.updateMainPanel();
   }
 };
 
