@@ -76,11 +76,11 @@ var Chatterbug = {
 
   onConnected: function(){
     Chatterbug.updateConnectionStatus('connected');
-    
+
     var iq = $iq({type: 'get'}).c('query', {xmlns: 'jabber:iq:roster'});
     Chatterbug.connection.sendIQ(iq, Chatterbug.onRoster);
     Chatterbug.connection.send($pres());
-
+    
     Chatterbug.connection.addHandler(Chatterbug.onPresence,       null,               "presence"          );
     Chatterbug.connection.addHandler(Chatterbug.onRosterChanged,  "jabber:iq:roster", "iq",       "set"   );
     Chatterbug.connection.addHandler(Chatterbug.onMessage,        null,               "message",  "chat"  );
@@ -118,42 +118,36 @@ var Chatterbug = {
     Chatterbug.onDisconnected();
   },
 
+  createContactElement: function(jid, name){
+    var jid_id = Chatterbug.jidToDomId(jid);
+    return $("<li id='" + jid_id + "'>" +
+        "<div class='" +
+        ($('#' + jid_id).attr('class') || "roster-contact offline") +
+        "'>" +
+        "<div class='roster-name'>" +
+        name +
+        "</div><div class='roster-jid'>" +
+        jid +
+        "</div></div></li>");
+  },
+
   onContactAdded: function(data) {
     var iq = $iq({type: "set"}).c("query", {xmlns: "jabber:iq:roster"}).c("item", data);
     Chatterbug.connection.sendIQ(iq);
     var subscribe = $pres({to: data.jid,"type": "subscribe"});
     Chatterbug.connection.send(subscribe);
-
-    var jid_id = Chatterbug.jidToDomId(data.jid);
-    
-    var contact = $("<li id='" + jid_id + "'>" +
-      "<div class='roster-contact offline'>" +
-      "<div class='roster-name'>" +
-        data.name +
-      "</div><div class='roster-jid'>" +
-        data.jid +
-      "</div></div></li>");
-
-    Chatterbug.insertContact(contact);
+    Chatterbug.insertContact(
+      Chatterbug.createContactElement(data.jid, data.name)
+    );
   },
 
   onRoster: function (iq) {
     $(iq).find('item').each(function () {
       var jid = $(this).attr('jid');
       var name = $(this).attr('name') || jid;
-
-      // transform jid into an id
-      var jid_id = Chatterbug.jidToDomId(jid);
-
-      var contact = $("<li id='" + jid_id + "'>" +
-        "<div class='roster-contact offline'>" +
-        "<div class='roster-name'>" +
-        name +
-        "</div><div class='roster-jid'>" +
-        jid +
-        "</div></div></li>");
-
-      Chatterbug.insertContact(contact);
+      Chatterbug.insertContact(
+        Chatterbug.createContactElement(jid, name)
+      );
     });
   },
 
@@ -161,8 +155,6 @@ var Chatterbug = {
 
   onPresence: function (presence) {
     var from = $(presence).attr('from');
-    if(Strophe.getBareJidFromJid(from) == Chatterbug.config.jid) return;
-    
     var jid_id  = Chatterbug.jidToDomId(from);
     var ptype   = $(presence).attr('type');
 
@@ -203,35 +195,24 @@ var Chatterbug = {
 
   onRosterChanged: function (iq) {
     $(iq).find('item').each(function () {
-      var sub = $(this).attr('subscription');
-      var jid = $(this).attr('jid');
-      var name = $(this).attr('name') || jid;
-      var jid_id = Chatterbug.jidToDomId(jid);
+      var sub     = $(this).attr('subscription');
+      var jid     = $(this).attr('jid');
+      var name    = $(this).attr('name') || jid;
+      var jid_id  = Chatterbug.jidToDomId(jid);
 
       if (sub === 'remove') {
         // contact is being removed
         $('#' + jid_id).remove();
       } else {
         // contact is being added or modified
-        var contact_html = "<li id='" + jid_id + "'>" +
-        "<div class='" +
-        ($('#' + jid_id).attr('class') || "roster-contact offline") +
-        "'>" +
-        "<div class='roster-name'>" +
-        name +
-        "</div><div class='roster-jid'>" +
-        jid +
-        "</div></div></li>";
-
+        var contact = Chatterbug.createContactElement(jid, name);
         if ($('#' + jid_id).length > 0) {
-          $('#' + jid_id).replaceWith(contact_html);
+          $('#' + jid_id).replaceWith(contact);
         } else {
-          Chatterbug.insertContact(contact_html);
+          Chatterbug.insertContact(contact);
         }
       }
     });
-
-    return true;
   },
 
   onMessage: function (message) {
