@@ -118,6 +118,25 @@ var Chatterbug = {
     Chatterbug.onDisconnected();
   },
 
+  onContactAdded: function(data) {
+    var iq = $iq({type: "set"}).c("query", {xmlns: "jabber:iq:roster"}).c("item", data);
+    Chatterbug.connection.sendIQ(iq);
+    var subscribe = $pres({to: data.jid,"type": "subscribe"});
+    Chatterbug.connection.send(subscribe);
+
+    var jid_id = Chatterbug.jidToDomId(data.jid);
+    
+    var contact = $("<li id='" + jid_id + "'>" +
+      "<div class='roster-contact offline'>" +
+      "<div class='roster-name'>" +
+        data.name +
+      "</div><div class='roster-jid'>" +
+        data.jid +
+      "</div></div></li>");
+
+    Chatterbug.insertContact(contact);
+  },
+
   onRoster: function (iq) {
     $(iq).find('item').each(function () {
       var jid = $(this).attr('jid');
@@ -139,45 +158,6 @@ var Chatterbug = {
   },
 
   pending_subscriber: null,
-
-//  onPresence: function (presence) {
-//    var ptype = $(presence).attr('type');
-//    var from = $(presence).attr('from');
-//    var jid_id = Chatterbug.jidToDomId(from);
-//
-//    if (ptype === 'subscribe') {
-//      // populate pending_subscriber, the approve-jid span, and
-//      // open the dialog
-//      Chatterbug.pending_subscriber = from;
-//      $('#approve-jid').text(Strophe.getBareJidFromJid(from));
-//      $('#approve_dialog').dialog('open');
-//    } else if (ptype !== 'error') {
-//      var contact = $('#roster-area li#' + jid_id + ' .roster-contact')
-//      .removeClass("online")
-//      .removeClass("away")
-//      .removeClass("offline");
-//      if (ptype === 'unavailable') {
-//        contact.addClass("offline");
-//      } else {
-//        var show = $(presence).find("show").text();
-//        if (show === "" || show === "chat") {
-//          contact.addClass("online");
-//        } else {
-//          contact.addClass("away");
-//        }
-//      }
-//
-//      var li = contact.parent();
-//      li.remove();
-//      Chatterbug.insertContact(li);
-//    }
-//
-//    // reset addressing for user since their presence changed
-//    var jid_id = Chatterbug.jidToDomId(from);
-//    $('#chat-' + jid_id).data('jid', Strophe.getBareJidFromJid(from));
-//
-//    return true;
-//  },
 
   onPresence: function (presence) {
     var ptype = $(presence).attr('type');
@@ -340,40 +320,6 @@ var Chatterbug = {
     return 0;
   },
 
-//  insertContact: function (elem) {
-//    var jid = elem.find('.roster-jid').text();
-//    var pres = Chatterbug.presence_value(elem.find('.roster-contact'));
-//
-//    var contacts = $('#roster-area li');
-//
-//    if (contacts.length > 0) {
-//      var inserted = false;
-//      contacts.each(function () {
-//        var cmp_pres = Chatterbug.presence_value(
-//          $(this).find('.roster-contact'));
-//        var cmp_jid = $(this).find('.roster-jid').text();
-//
-//        if (pres > cmp_pres) {
-//          $(this).before(elem);
-//          inserted = true;
-//          return false;
-//        } else {
-//          if (jid < cmp_jid) {
-//            $(this).before(elem);
-//            inserted = true;
-//            return false;
-//          }
-//        }
-//      });
-//
-//      if (!inserted) {
-//        $('#roster-area ul').append(elem);
-//      }
-//    } else {
-//      $('#roster-area ul').append(elem);
-//    }
-//  },
-
   insertContact: function (elem) {
     var jid = elem.find('.roster-jid').text();
     var pres = Chatterbug.presence_value(elem.find('.roster-contact'));
@@ -414,22 +360,19 @@ $(document).ready(function () {
 
   Chatterbug.connect();
 
-
   $('#contact_dialog').dialog({
     autoOpen: false,
     draggable: false,
     modal: true,
     title: 'Add a Contact',
     buttons: {
-      "Add": function () {
-        Chatterbug.mainPanel.trigger('contact_added', {
+      "Add": function(){
+        Chatterbug.onContactAdded({
           jid: $('#contact-jid').val(),
           name: $('#contact-name').val()
         });
-
         $('#contact-jid').val('');
         $('#contact-name').val('');
-                
         $(this).dialog('close');
       }
     }
@@ -574,23 +517,5 @@ $(document).ready(function () {
 
   $('#new-chat').click(function () {
     $('#chat_dialog').dialog('open');
-  });
-  
-  Chatterbug.mainPanel.bind('contact_added', function (ev, data) {
-    var iq = $iq({
-      type: "set"
-    }).c("query", {
-      xmlns: "jabber:iq:roster"
-    })
-    .c("item", data);
-    Chatterbug.connection.sendIQ(iq);
-
-    var subscribe = $pres({
-      to: data.jid,
-      "type": "subscribe"
-    });
-    Chatterbug.connection.send(subscribe);
-
-    stopPropogation();
   });
 });
