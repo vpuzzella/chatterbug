@@ -93,21 +93,20 @@ var Chatterbug = {
     $('#chat-area div').remove();
     $('#login_dialog').dialog('open');
     Chatterbug.connection = null;
-    Chatterbug.pending_subscriber = null;
   },
 
   connect: function(){
     Chatterbug.connection = new Strophe.Connection(Chatterbug.config.bosh_uri);
     Chatterbug.connection.connect(Chatterbug.config.jid, Chatterbug.config.password, function(status){
       switch(status){
-        case Strophe.Status.CONNECTING:     Chatterbug.updateConnectionStatus('connecting'); break;
-        case Strophe.Status.CONNECTED:      Chatterbug.onConnected(); break;
-        case Strophe.Status.DISCONNECTED:   Chatterbug.onDisconnected(); break;
-        case Strophe.Status.ERROR:          Chatterbug.updateConnectionStatus('error'); break;
-        case Strophe.Status.CONNFAIL:       Chatterbug.updateConnectionStatus('connfail'); break;
-        case Strophe.Status.AUTHENTICATING: Chatterbug.updateConnectionStatus('authenticating'); break;
-        case Strophe.Status.AUTHFAIL:       Chatterbug.updateConnectionStatus('authfail'); break;
-        case Strophe.Status.DISCONNECTING:  Chatterbug.updateConnectionStatus('disconnecting'); break;
+        case Strophe.Status.CONNECTING:Chatterbug.updateConnectionStatus('connecting');break;
+        case Strophe.Status.CONNECTED:Chatterbug.onConnected();break;
+        case Strophe.Status.DISCONNECTED:Chatterbug.onDisconnected();break;
+        case Strophe.Status.ERROR:Chatterbug.updateConnectionStatus('error');break;
+        case Strophe.Status.CONNFAIL:Chatterbug.updateConnectionStatus('connfail');break;
+        case Strophe.Status.AUTHENTICATING:Chatterbug.updateConnectionStatus('authenticating');break;
+        case Strophe.Status.AUTHFAIL:Chatterbug.updateConnectionStatus('authfail');break;
+        case Strophe.Status.DISCONNECTING:Chatterbug.updateConnectionStatus('disconnecting');break;
       }
     });
     return Chatterbug.connection;
@@ -151,20 +150,49 @@ var Chatterbug = {
     });
   },
 
-  pending_subscriber: null,
+  onSubscriptionRequest: function(from){
+    var notice = $.pnotify({
+      pnotify_text:
+        '<div class="chatterbug-notice">' +
+          '<h1>Subscription Request</h1>' +
+          '<p><label>From:</label> ' + from + '</p>' +
+        '</div>' +
+        '<div>' +
+          '<button class="accept">Accept</button>' +
+          '<button class="deny">Deny</button>' +
+        '</div>',
+      pnotify_width: 'auto',
+      pnotify_hide: false
+    });
+
+    notice.find('button').click(function(){
+      if($(this).hasClass('deny')){
+        Chatterbug.connection.send($pres({
+          to: from,
+          "type": "unsubscribed"
+        }));
+      } else {
+        Chatterbug.connection.send($pres({
+          to: from,
+          "type": "subscribed"
+        }));
+        Chatterbug.connection.send($pres({
+          to: from,
+          "type": "subscribe"
+        }));
+      }
+      notice.pnotify_remove();
+      return false;
+    });
+  },
 
   onPresence: function (presence) {
     var from = $(presence).attr('from');
     var jid_id  = Chatterbug.jidToDomId(from);
     var ptype   = $(presence).attr('type');
 
-
     if (ptype === 'subscribe') {
-      // populate pending_subscriber, the approve-jid span, and
-      // open the dialog
-      Chatterbug.pending_subscriber = from;
-      $('#approve-jid').text(Strophe.getBareJidFromJid(from));
-      $('#approve_dialog').dialog('open');
+      Chatterbug.onSubscriptionRequest(from);
     } else if (ptype !== 'error') {
       var contact = Chatterbug.mainPanel.roster.find('li#' + jid_id + ' .roster-contact')
       .removeClass("online")
@@ -293,7 +321,6 @@ var Chatterbug = {
     div.scrollTop = div.scrollHeight;
   },
 
-
   presence_value: function (elem) {
     if (elem.hasClass('online')) {
       return 2;
@@ -364,40 +391,6 @@ $(document).ready(function () {
 
   $('#new-contact').click(function (ev) {
     $('#contact_dialog').dialog('open');
-  });
-
-  $('#approve_dialog').dialog({
-    autoOpen: false,
-    draggable: false,
-    modal: true,
-    title: 'Subscription Request',
-    buttons: {
-      "Deny": function () {
-        Chatterbug.connection.send($pres({
-          to: Chatterbug.pending_subscriber,
-          "type": "unsubscribed"
-        }));
-        Chatterbug.pending_subscriber = null;
-
-        $(this).dialog('close');
-      },
-
-      "Approve": function () {
-        Chatterbug.connection.send($pres({
-          to: Chatterbug.pending_subscriber,
-          "type": "subscribed"
-        }));
-
-        Chatterbug.connection.send($pres({
-          to: Chatterbug.pending_subscriber,
-          "type": "subscribe"
-        }));
-                
-        Chatterbug.pending_subscriber = null;
-
-        $(this).dialog('close');
-      }
-    }
   });
 
   $('#chat-area').tabs().find('.ui-tabs-nav').sortable({
