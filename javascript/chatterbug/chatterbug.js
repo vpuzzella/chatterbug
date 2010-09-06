@@ -77,13 +77,13 @@ var Chatterbug = {
   onConnected: function(){
     Chatterbug.updateConnectionStatus('connected');
     
-    Chatterbug.connection.addHandler(Chatterbug.onPresence,       null,               "presence"          );
-    Chatterbug.connection.addHandler(Chatterbug.onRosterChanged,  "jabber:iq:roster", "iq",       "set"   );
-    Chatterbug.connection.addHandler(Chatterbug.onMessage,        null,               "message",  "chat"  );
-
     var iq = $iq({type: 'get'}).c('query', {xmlns: 'jabber:iq:roster'});
     Chatterbug.connection.sendIQ(iq, Chatterbug.onRoster);
     Chatterbug.connection.send($pres());
+
+    Chatterbug.connection.addHandler(Chatterbug.onPresence,       null,               "presence"          );
+    Chatterbug.connection.addHandler(Chatterbug.onRosterChanged,  "jabber:iq:roster", "iq",       "set"   );
+    Chatterbug.connection.addHandler(Chatterbug.onMessage,        null,               "message",  "chat"  );
   },
 
   onDisconnected: function(){
@@ -160,9 +160,12 @@ var Chatterbug = {
   pending_subscriber: null,
 
   onPresence: function (presence) {
-    var ptype = $(presence).attr('type');
     var from = $(presence).attr('from');
-    var jid_id = Chatterbug.jidToDomId(from);
+    if(Strophe.getBareJidFromJid(from) == Chatterbug.config.jid) return;
+    
+    var jid_id  = Chatterbug.jidToDomId(from);
+    var ptype   = $(presence).attr('type');
+
 
     if (ptype === 'subscribe') {
       // populate pending_subscriber, the approve-jid span, and
