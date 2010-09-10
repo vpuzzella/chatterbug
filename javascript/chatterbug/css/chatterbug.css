@@ -118,3 +118,7 @@ h1 {
 #chatterbug-main-panel.connected  .connection-status{
   color: green;
 }
+
+#chatterbug-main-panel .chatterbug-contact .actions{
+  float: right;
+}

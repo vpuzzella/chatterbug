@@ -117,28 +117,31 @@ var Chatterbug = {
     Chatterbug.onDisconnected();
   },
 
-  createContactElement: function(jid, name){
+  createContactElement: function(data){
+    var jid = data.jid
+    var name = data.name
     var dom_id = Chatterbug.jidToDomId(jid);
-    return $(
-      "<li id='" + dom_id + "', class='chatterbug-contact'>" +
-        "<div class='actions' style='float: right;'>" +
-          "<a class='remove' href='#'>X</a>" +
-        "</div>" +
-        "<div class='" + ($('#' + dom_id).attr('class') || "roster-contact offline") + "'>" +
-          "<div class='roster-name'>" + name + "</div>" +
-          "<div class='roster-jid'>" + jid + "</div>" +
-        "</div>" +
-      "</li>"
-    );
+    return $(document.createElement('li'))
+      .attr('id', dom_id)
+      .addClass('chatterbug-contact')
+      .append(
+        $(document.createElement('div'))
+          .addClass('actions')
+          .append($(document.createElement('a')).addClass('remove').attr('href', '#').text('X'))
+      )
+      .append(
+        $(document.createElement('div'))
+          .addClass((Chatterbug.mainPanel.roster.find('#' + dom_id).attr('class') || "roster-contact offline"))
+          .append($(document.createElement('div')).addClass('roster-name').text(name))
+          .append($(document.createElement('div')).addClass('roster-jid').text(jid))
+      );
   },
 
   onRoster: function (iq) {
     $(iq).find('item').each(function () {
       var jid = $(this).attr('jid');
-      var name = $(this).attr('name') || jid;
-      Chatterbug.insertContact(
-        Chatterbug.createContactElement(jid, name)
-      );
+      var name = $(this).attr('name');
+      Chatterbug.insertContact(Chatterbug.createContactElement({jid: jid, name: name}));
     });
   },
 
@@ -327,20 +330,17 @@ var Chatterbug = {
         .c("query", {xmlns: "jabber:iq:roster"})
         .c("item", data)
     );
+    Chatterbug.onContactAdded(data);
   },
 
   onContactAdded: function(data){
-    Chatterbug.insertContact(
-      Chatterbug.createContactElement(data.jid, data.name)
-    );
-
-    var subscribe = $pres({to: data.jid,"type": "subscribe"});
-    Chatterbug.connection.send(subscribe);
+    Chatterbug.insertContact(Chatterbug.createContactElement(data));
+    Chatterbug.connection.send($pres({to: data.jid, type: 'subscribe'}));
   },
 
   onContactChanged: function(data){
-    Chatterbug.mainPanel.roster.find('#' + Chatterbug.jidToDomId(data['jid'])).replaceWith(
-      Chatterbug.createContactElement(data['jid'], data['name'])
+    Chatterbug.mainPanel.roster.find('#' + Chatterbug.jidToDomId(data.jid)).replaceWith(
+      Chatterbug.createContactElement(data)
     );
   },
 
