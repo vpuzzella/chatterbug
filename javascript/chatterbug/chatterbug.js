@@ -31,6 +31,39 @@ var Chatterbug = {
       .extend({
         contact: function(jid){
           return $(this).find('#' + Chatterbug.jidToDomId(jid));
+        },
+
+        insertContact: function(elem) {
+          var jid = elem.find('.jid').text();
+          var pres = Chatterbug.presence_value(elem);
+
+          var contacts = $(this).find('.contact');
+          
+          if (contacts.length > 0) {
+            var inserted = false;
+            contacts.each(function () {
+              var cmp_pres = Chatterbug.presence_value($(this));
+              var cmp_jid = $(this).find('.jid').text();
+
+              if (pres > cmp_pres) {
+                $(this).before(elem);
+                inserted = true;
+                return false;
+              } else {
+                if (jid < cmp_jid) {
+                  $(this).before(elem);
+                  inserted = true;
+                  return false;
+                }
+              }
+            });
+
+            if (!inserted) {
+              $(this).append(elem);
+            }
+          } else {
+            $(this).append(elem);
+          }
         }
       });
     
@@ -148,7 +181,7 @@ var Chatterbug = {
     $(iq).find('item').each(function () {
       var jid = $(this).attr('jid');
       var name = $(this).attr('name');
-      Chatterbug.insertContact(Chatterbug.createContact({jid: jid, name: name}));
+      Chatterbug.roster.insertContact(Chatterbug.createContact({jid: jid, name: name}));
     });
   },
 
@@ -211,7 +244,7 @@ var Chatterbug = {
         }
       }
       contact.remove();
-      Chatterbug.insertContact(contact);
+      Chatterbug.roster.insertContact(contact);
     }
 
     // reset addressing for user since their presence changed
@@ -338,7 +371,7 @@ var Chatterbug = {
   },
 
   onContactAdded: function(data){
-    Chatterbug.insertContact(Chatterbug.createContact(data));
+    Chatterbug.roster.insertContact(Chatterbug.createContact(data));
   },
 
   onContactChanged: function(data){
@@ -356,39 +389,6 @@ var Chatterbug = {
 
   onContactRemoved: function(jid){
     Chatterbug.roster.contact(jid).remove();
-  },
-
-  insertContact: function (elem) {
-    var jid = elem.find('.jid').text();
-    var pres = Chatterbug.presence_value(elem);
-
-    var contacts = Chatterbug.roster.find('.contact');
-
-    if (contacts.length > 0) {
-      var inserted = false;
-      contacts.each(function () {
-        var cmp_pres = Chatterbug.presence_value($(this));
-        var cmp_jid = $(this).find('.jid').text();
-
-        if (pres > cmp_pres) {
-          $(this).before(elem);
-          inserted = true;
-          return false;
-        } else {
-          if (jid < cmp_jid) {
-            $(this).before(elem);
-            inserted = true;
-            return false;
-          }
-        }
-      });
-
-      if (!inserted) {
-        Chatterbug.roster.append(elem);
-      }
-    } else {
-      Chatterbug.roster.append(elem);
-    }
   }
 };
 
