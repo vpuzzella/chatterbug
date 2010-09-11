@@ -2,6 +2,7 @@ var Chatterbug = {
   config: ChatterbugConfig,
   connection: null,
   mainPanel: null,
+  roster: null,
 
   jidToDomId: function (jid) {
     return Strophe.getBareJidFromJid(jid).replace(/@|\./, "-");
@@ -25,13 +26,19 @@ var Chatterbug = {
         .text(Chatterbug.localPartFromJid(Chatterbug.config.jid) + ':'))
       .append(presenceSelector);
 
-    var roster  = $(document.createElement('ul')).addClass('roster');
-
+    Chatterbug.roster = $(document.createElement('ul'))
+      .addClass('roster')
+      .extend({
+        contact: function(jid){
+          return Chatterbug.roster.find('#' + Chatterbug.jidToDomId(jid));
+        }
+      });
+    
     var content = $(document.createElement('div'))
       .addClass('content')
       .css('display', 'none')
       .append(presence)
-      .append(roster)
+      .append(Chatterbug.roster)
 
     var label = $(document.createElement('span')).text('Chat:');
 
@@ -53,14 +60,14 @@ var Chatterbug = {
       .extend({
         content: content,
         presence: presence,
-        roster: roster,
+        roster: Chatterbug.roster,
         handle: handle,
         connectionStatus: status
       }
     );
       
     $('body').append(Chatterbug.mainPanel);
-
+    
     return Chatterbug.mainPanel;
   },
 
@@ -117,7 +124,7 @@ var Chatterbug = {
     Chatterbug.onDisconnected();
   },
 
-  createContactElement: function(data){
+  createContact: function(data){
     var jid = data.jid
     var name = data.name
     var dom_id = Chatterbug.jidToDomId(jid);
@@ -131,7 +138,7 @@ var Chatterbug = {
       )
       .append(
         $(document.createElement('div'))
-          .addClass((Chatterbug.mainPanel.roster.find('#' + dom_id).attr('class') || "roster-contact offline"))
+          .addClass((Chatterbug.roster.contact(jid).attr('class') || "roster-contact offline"))
           .append($(document.createElement('div')).addClass('roster-name').text(name))
           .append($(document.createElement('div')).addClass('roster-jid').text(jid))
       );
@@ -141,7 +148,7 @@ var Chatterbug = {
     $(iq).find('item').each(function () {
       var jid = $(this).attr('jid');
       var name = $(this).attr('name');
-      Chatterbug.insertContact(Chatterbug.createContactElement({jid: jid, name: name}));
+      Chatterbug.insertContact(Chatterbug.createContact({jid: jid, name: name}));
     });
   },
 
@@ -183,16 +190,16 @@ var Chatterbug = {
 
   onPresence: function (presence) {
     var from = $(presence).attr('from');
-    var dom_id  = Chatterbug.jidToDomId(from);
     var ptype   = $(presence).attr('type');
 
     if (ptype === 'subscribe') {
       Chatterbug.onSubscriptionRequest(from);
     } else if (ptype !== 'error') {
-      var contact = Chatterbug.mainPanel.roster.find('li#' + dom_id + ' .roster-contact')
-      .removeClass("online")
-      .removeClass("away")
-      .removeClass("offline");
+      var contact = Chatterbug.roster.contact(from).find('.roster-contact')
+        .removeClass("online")
+        .removeClass("away")
+        .removeClass("offline");
+        
       if (ptype === 'unavailable') {
         contact.addClass("offline");
       } else {
@@ -227,7 +234,7 @@ var Chatterbug = {
         Chatterbug.onContactRemoved(jid);
       } else {
         // contact is being added or modified
-        if (Chatterbug.mainPanel.roster.find('#' + dom_id).length > 0) {
+        if (Chatterbug.roster.contact(jid).length > 0) {
           Chatterbug.onContactChanged({jid: jid, name: name});
         } else {
           Chatterbug.onContactAdded({jid: jid, name: name});
@@ -334,13 +341,13 @@ var Chatterbug = {
   },
 
   onContactAdded: function(data){
-    Chatterbug.insertContact(Chatterbug.createContactElement(data));
+    Chatterbug.insertContact(Chatterbug.createContact(data));
     Chatterbug.connection.send($pres({to: data.jid, type: 'subscribe'}));
   },
 
   onContactChanged: function(data){
-    Chatterbug.mainPanel.roster.find('#' + Chatterbug.jidToDomId(data.jid)).replaceWith(
-      Chatterbug.createContactElement(data)
+    Chatterbug.roster.contact(data.jid).replaceWith(
+      Chatterbug.createContact(data)
     );
   },
 
@@ -354,14 +361,14 @@ var Chatterbug = {
   },
 
   onContactRemoved: function(jid){
-    Chatterbug.mainPanel.roster.find('#' + Chatterbug.jidToDomId(jid)).remove();
+    Chatterbug.roster.contact(jid).remove();
   },
 
   insertContact: function (elem) {
     var jid = elem.find('.roster-jid').text();
     var pres = Chatterbug.presence_value(elem.find('.roster-contact'));
 
-    var contacts = Chatterbug.mainPanel.roster.find('li');
+    var contacts = Chatterbug.roster.find('li');
 
     if (contacts.length > 0) {
       var inserted = false;
@@ -384,10 +391,10 @@ var Chatterbug = {
       });
 
       if (!inserted) {
-        Chatterbug.mainPanel.roster.append(elem);
+        Chatterbug.roster.append(elem);
       }
     } else {
-      Chatterbug.mainPanel.roster.append(elem);
+      Chatterbug.roster.append(elem);
     }
   }
 };
