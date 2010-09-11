@@ -64,31 +64,6 @@ h1 {
     font-size: 75%;
 }
 
-.roster-contact {
-    padding: 3px;
-}
-
-.roster-contact:hover {
-    background-color: #aaa;
-    color: white;
-}
-
-.roster-name {
-    /*font-size: 150%;*/
-}
-
-.online {
-    color: #3c3;
-}
-
-.away {
-    color: #c33;
-}
-
-.offline {
-    color: #ccc;
-}
-
 .chatterbug-panel{
   border: 1px solid #000000;
   width: 201px;
@@ -119,6 +94,22 @@ h1 {
   color: green;
 }
 
-#chatterbug-main-panel .chatterbug-contact .actions{
+#chatterbug-main-panel .roster .contact .actions{
   float: right;
+}
+
+#chatterbug-main-panel .roster .contact:hover{
+    cursor: pointer;
+}
+
+.chatterbug-panel .online {
+    color: #3c3;
+}
+
+.chatterbug-panel .away {
+    color: #c33;
+}
+
+.chatterbug-panel .offline {
+    color: #ccc;
 }
