@@ -168,12 +168,25 @@ var Chatterbug = {
       .append(
         $(document.createElement('div'))
           .addClass('actions')
-          .append($(document.createElement('a')).addClass('remove').attr('href', '#').text('X'))
+          .append($(document.createElement('a')).
+            addClass('remove').attr('href', '#')
+            .text('X')
+            .attr('title', 'Remove contact')
+          )
       )
       .append(
         $(document.createElement('div'))
-          .append($(document.createElement('div')).addClass('name').text(name))
-          .append($(document.createElement('div')).addClass('jid').text(jid))
+          .append($(document.createElement('div'))
+            .addClass('name')
+            .attr('title', jid)
+            .text(name)
+            
+          )
+          .append($(document.createElement('div'))
+            .addClass('jid')
+            .css('display', (name ? 'none':'block'))
+            .text(jid)
+          )
       );
   },
 

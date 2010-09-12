@@ -1,7 +1,3 @@
-body {
-    font-family: Helvetica;
-}
-
 h1 {
     text-align: center;
 }
@@ -71,6 +67,10 @@ h1 {
   right: 10px;
   bottom: 0px;
 
+}
+
+.chatterbug-panel *{
+  overflow: hidden;
 }
 
 .chatterbug-panel .content{
