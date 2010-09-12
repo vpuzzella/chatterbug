@@ -33,6 +33,10 @@ var Chatterbug = {
           return $(this).find('#' + Chatterbug.jidToDomId(jid));
         },
 
+        hasContact: function(jid){
+          return Chatterbug.roster.contact(jid).length > 0;
+        },
+
         insertContact: function(elem) {
           var jid = elem.find('.jid').text();
           var pres = Chatterbug.presence_value(elem);
@@ -198,7 +202,25 @@ var Chatterbug = {
     });
   },
 
+  subscribe: function(to){
+    Chatterbug.connection.send($pres({to: to, type: 'subscribe'}));
+  },
+  
+  acceptSubscription: function(from){
+    Chatterbug.connection.send($pres({to: from, type: 'subscribed'}));
+    Chatterbug.addContact({jid: from})
+  },
+
+  denySubscription: function(from){
+    Chatterbug.connection.send($pres({to: from, type: 'unsubscribed'}));
+  },
+  
   onSubscriptionRequest: function(from){
+    if(Chatterbug.config.auto_accept_subscription_request){
+      Chatterbug.acceptSubscription(from);
+      return;
+    }
+
     var notice = $.pnotify({
       pnotify_text:
         '<div class="chatterbug-notice">' +
@@ -212,23 +234,10 @@ var Chatterbug = {
       pnotify_width: 'auto',
       pnotify_hide: false
     });
-
+    
     notice.find('button').click(function(){
-      if($(this).hasClass('deny')){
-        Chatterbug.connection.send($pres({
-          to: from,
-          "type": "unsubscribed"
-        }));
-      } else {
-        Chatterbug.connection.send($pres({
-          to: from,
-          "type": "subscribed"
-        }));
-        Chatterbug.connection.send($pres({
-          to: from,
-          "type": "subscribe"
-        }));
-      }
+      if($(this).hasClass('deny')){Chatterbug.denySubscription(from);}
+      else{Chatterbug.acceptSubscription(from);}
       notice.pnotify_remove();
       return false;
     });
@@ -374,13 +383,11 @@ var Chatterbug = {
   },
 
   addContact: function(data) {
-    Chatterbug.connection.sendIQ(
-      $iq({type: "set"})
-        .c("query", {xmlns: "jabber:iq:roster"})
-        .c("item", data)
-    );
-    Chatterbug.connection.send($pres({to: data.jid, type: 'subscribe'}));
-    Chatterbug.onContactAdded(data);
+    if(!Chatterbug.roster.hasContact(data.jid)){
+      Chatterbug.connection.sendIQ($iq({type: "set"}).c("query", {xmlns: "jabber:iq:roster"}).c("item", data));
+      Chatterbug.onContactAdded(data);
+    }
+    Chatterbug.subscribe(data.jid);
   },
 
   onContactAdded: function(data){
@@ -422,10 +429,7 @@ $(document).ready(function () {
     title: 'Add a Contact',
     buttons: {
       "Add": function(){
-        Chatterbug.addContact({
-          jid: $('#contact-jid').val(),
-          name: $('#contact-name').val()
-        });
+        Chatterbug.addContact({jid: $('#contact-jid').val(), name: $('#contact-name').val()});
         $('#contact-jid').val('');
         $('#contact-name').val('');
         $(this).dialog('close');
