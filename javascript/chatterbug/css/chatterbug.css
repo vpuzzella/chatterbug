@@ -113,3 +113,8 @@ h1 {
 .chatterbug-panel .offline {
     color: #ccc;
 }
+
+#chatterbug-main-panel ul.roster{
+  padding: 0px 0px 0px 0px;
+  margin: 0px 0px 0px 0px
+}

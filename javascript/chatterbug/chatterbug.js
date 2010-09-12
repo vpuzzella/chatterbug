@@ -37,37 +37,25 @@ var Chatterbug = {
           return Chatterbug.roster.contact(jid).length > 0;
         },
 
-        insertContact: function(elem) {
-          var jid = elem.find('.jid').text();
-          var pres = Chatterbug.presence_value(elem);
-
-          var contacts = $(this).find('.contact');
-          
-          if (contacts.length > 0) {
-            var inserted = false;
-            contacts.each(function () {
-              var cmp_pres = Chatterbug.presence_value($(this));
-              var cmp_jid = $(this).find('.jid').text();
-
-              if (pres > cmp_pres) {
+        insertContact: function(elem){
+          var jid       = elem.find('.jid').text();
+          var pres      = Chatterbug.presence_value(elem);
+          var contacts  = $(this).find('.contact');          
+          var inserted  = false;
+          contacts.each(function(){
+            var cmp_pres = Chatterbug.presence_value($(this));
+            var cmp_jid = $(this).find('.jid').text();
+            if(pres > cmp_pres){
+              $(this).before(elem);
+              inserted = true;
+            }
+            else if(jid < cmp_jid){
                 $(this).before(elem);
                 inserted = true;
-                return false;
-              } else {
-                if (jid < cmp_jid) {
-                  $(this).before(elem);
-                  inserted = true;
-                  return false;
-                }
-              }
-            });
-
-            if (!inserted) {
-              $(this).append(elem);
             }
-          } else {
-            $(this).append(elem);
-          }
+            if(inserted){return false;}
+          });
+          if(!inserted){$(this).append(elem);}
         }
       });
     
@@ -174,7 +162,7 @@ var Chatterbug = {
           .addClass('actions')
           .append($(document.createElement('a')).
             addClass('remove').attr('href', '#')
-            .text('X')
+            .text('x')
             .attr('title', 'Remove contact')
           )
       )
@@ -373,12 +361,9 @@ var Chatterbug = {
     div.scrollTop = div.scrollHeight;
   },
 
-  presence_value: function (elem) {
-    if (elem.hasClass('online')) {
-      return 2;
-    } else if (elem.hasClass('away')) {
-      return 1;
-    }
+  presence_value: function(elem){
+    if(elem.hasClass('online')){return 2;}
+    else if(elem.hasClass('away')){return 1;}
     return 0;
   },
 
