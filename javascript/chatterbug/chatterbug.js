@@ -39,21 +39,25 @@ var Chatterbug = {
 
         insertContact: function(elem){
           var jid       = elem.find('.jid').text();
-          var pres      = Chatterbug.presence_value(elem);
-          var contacts  = $(this).find('.contact');          
+          var pres      = Chatterbug.sortablePresenceValue(elem);
           var inserted  = false;
-          contacts.each(function(){
-            var cmp_pres = Chatterbug.presence_value($(this));
+
+          $(this).find('.contact').each(function(){
+            var cmp_pres = Chatterbug.sortablePresenceValue($(this));
             var cmp_jid = $(this).find('.jid').text();
             if(pres > cmp_pres){
               $(this).before(elem);
               inserted = true;
             }
-            else if(jid < cmp_jid){
-                $(this).before(elem);
-                inserted = true;
+            else if(pres < cmp_pres){
+              $(this).after(elem);
+              inserted = true;
             }
-            if(inserted){return false;}
+            else if(jid < cmp_jid){
+              $(this).before(elem);
+              inserted = true;
+            }
+            if(inserted){return;}
           });
           if(!inserted){$(this).append(elem);}
         }
@@ -182,7 +186,7 @@ var Chatterbug = {
       );
   },
 
-  onRosterReceived: function (iq) {
+  onRosterReceived: function(iq){
     $(iq).find('item').each(function () {
       var jid = $(this).attr('jid');
       var name = $(this).attr('name');
@@ -361,7 +365,7 @@ var Chatterbug = {
     div.scrollTop = div.scrollHeight;
   },
 
-  presence_value: function(elem){
+  sortablePresenceValue: function(elem){
     if(elem.hasClass('online')){return 2;}
     else if(elem.hasClass('away')){return 1;}
     return 0;
