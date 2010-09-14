@@ -164,33 +164,31 @@ var Chatterbug = {
       .append(
         $(document.createElement('div'))
           .addClass('actions')
-          .append($(document.createElement('a')).
-            addClass('remove').attr('href', '#')
+          .append($(document.createElement('a'))
+            .addClass('remove')
+            .attr('href', '#')
             .text('x')
             .attr('title', 'Remove contact')
           )
       )
       .append(
         $(document.createElement('div'))
-          .append($(document.createElement('div'))
-            .addClass('name')
-            .attr('title', jid)
-            .text(name)
-            
-          )
-          .append($(document.createElement('div'))
+          .append($('<div />', {text: name, title: jid})).addClass('name')
+          .append($('<div />', {text: jid, title: name||jid})
             .addClass('jid')
             .css('display', (name ? 'none':'block'))
-            .text(jid)
           )
       );
   },
 
   onRosterReceived: function(iq){
     $(iq).find('item').each(function () {
-      var jid = $(this).attr('jid');
-      var name = $(this).attr('name');
-      Chatterbug.roster.insertContact(Chatterbug.createContact({jid: jid, name: name}));
+      var data = {
+        jid:          $(this).attr('jid'),
+        name:         $(this).attr('name'),
+        subscription: $(this).attr('subscription')
+      }
+      Chatterbug.roster.insertContact(Chatterbug.createContact(data));
     });
   },
 
@@ -268,22 +266,20 @@ var Chatterbug = {
     return true;
   },
 
-  onRosterChanged: function (iq) {
+  onRosterChanged: function(iq){
     $(iq).find('item').each(function () {
-      var sub     = $(this).attr('subscription');
-      var jid     = $(this).attr('jid');
-      var name    = $(this).attr('name') || jid;
-      
-      if (sub == 'remove') {
-        Chatterbug.onContactRemoved(jid);
-      } else {
-        // contact is being added or modified
-        if (Chatterbug.roster.contact(jid).length > 0) {
-          Chatterbug.onContactChanged({jid: jid, name: name});
-        } else {
-          Chatterbug.onContactAdded({jid: jid, name: name});
-        }
+      var data = {
+        subscription: $(this).attr('subscription'),
+        jid:          $(this).attr('jid'),
+        name:         $(this).attr('name')
       }
+      if(data.subscription == 'remove'){
+        Chatterbug.onContactRemoved(data.jid);
+        return;
+      }
+      // contact is being added or modified
+      if(Chatterbug.roster.contact(data.jid).length > 0){Chatterbug.onContactChanged(data);}
+      else{Chatterbug.onContactAdded(data);}
     });
   },
 
