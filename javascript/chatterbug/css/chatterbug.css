@@ -118,3 +118,7 @@ h1 {
   padding: 0px 0px 0px 0px;
   margin: 0px 0px 0px 0px
 }
+
+#chatterbug-main-panel ul.roster .actions a{
+  text-decoration: none;
+}
