@@ -156,6 +156,7 @@ var Chatterbug = {
   createContact: function(data){
     var jid = data.jid
     var name = data.name
+    var subscription = data.subscription
     var dom_id = Chatterbug.jidToDomId(jid);
 
     return $(document.createElement('li'))
@@ -169,6 +170,13 @@ var Chatterbug = {
             .attr('href', '#')
             .text('x')
             .attr('title', 'Remove contact')
+          )
+          .append($(document.createElement('a'))
+            .addClass('subscribe')
+            .attr('href', '#')
+            .text('s')
+            .attr('title', 'Subscribe')
+            .css({display: subscription != 'both' && subscription != 'to' ? null :'none'})
           )
       )
       .append(
@@ -236,7 +244,7 @@ var Chatterbug = {
   onPresenceReceived: function (presence) {
     var from = $(presence).attr('from');
     var ptype   = $(presence).attr('type');
-
+    
     if (ptype == 'subscribe') {
       Chatterbug.onSubscriptionRequest(from);
     } else if (ptype != 'error') {
@@ -244,10 +252,13 @@ var Chatterbug = {
         .removeClass("online")
         .removeClass("away")
         .removeClass("offline");
-        
+
       if (ptype == 'unavailable') {
         contact.addClass("offline");
       } else {
+        if(ptype == 'subscribed'){contact.find('a.subscribe').hide();}
+        else if(ptype == 'unsubscribed'){contact.find('a.subscribe').show();}
+
         var show = $(presence).find("show").text();
         if (show == "" || show == "chat") {
           contact.addClass("online");
@@ -404,6 +415,11 @@ $(document).ready(function () {
 
   Chatterbug.roster.find('a.remove').live('click', function(event){
     Chatterbug.removeContact($(event.target).closest('li').find('.jid').text());
+    return false;
+  });
+
+  Chatterbug.roster.find('a.subscribe').live('click', function(event){
+    Chatterbug.subscribe($(event.target).closest('li').find('.jid').text());
     return false;
   });
 
