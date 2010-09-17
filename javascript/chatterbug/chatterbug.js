@@ -178,6 +178,13 @@ var Chatterbug = {
             .attr('title', 'Subscribe')
             .css({display: subscription != 'both' && subscription != 'to' ? null :'none'})
           )
+          .append($(document.createElement('a'))
+            .addClass('cancel')
+            .attr('href', '#')
+            .text('c')
+            .attr('title', 'Cancel presence notification')
+            .css({display: subscription == 'both' || subscription == 'from' ? null :'none'})
+          )
       )
       .append(
         $(document.createElement('div'))
@@ -207,10 +214,16 @@ var Chatterbug = {
   acceptSubscription: function(from){
     Chatterbug.connection.send($pres({to: from, type: 'subscribed'}));
     Chatterbug.addContact({jid: from})
+    Chatterbug.roster.contact(from).find('a.cancel').show();
   },
 
   denySubscription: function(from){
     Chatterbug.connection.send($pres({to: from, type: 'unsubscribed'}));
+  },
+
+  cancelSubscription: function(from){
+    Chatterbug.denySubscription(from);
+    Chatterbug.roster.contact(from).find('a.cancel').hide();
   },
   
   onSubscriptionRequest: function(from){
@@ -244,7 +257,7 @@ var Chatterbug = {
   onPresenceReceived: function (presence) {
     var from = $(presence).attr('from');
     var ptype   = $(presence).attr('type');
-    
+
     if (ptype == 'subscribe') {
       Chatterbug.onSubscriptionRequest(from);
     } else if (ptype != 'error') {
@@ -420,6 +433,11 @@ $(document).ready(function () {
 
   Chatterbug.roster.find('a.subscribe').live('click', function(event){
     Chatterbug.subscribe($(event.target).closest('li').find('.jid').text());
+    return false;
+  });
+
+  Chatterbug.roster.find('a.cancel').live('click', function(event){
+    Chatterbug.cancelSubscription($(event.target).closest('li').find('.jid').text());
     return false;
   });
 
