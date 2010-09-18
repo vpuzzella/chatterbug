@@ -4,6 +4,11 @@ var Chatterbug = {
   mainPanel: null,
   roster: null,
 
+  log: function(msg){
+    if(console == undefined) return;
+    console.log(msg);
+  },
+
   jidToDomId: function (jid) {
     return Strophe.getBareJidFromJid(jid).replace(/@|\./, "-");
   },
@@ -166,12 +171,6 @@ var Chatterbug = {
         $(document.createElement('div'))
           .addClass('actions')
           .append($(document.createElement('a'))
-            .addClass('remove')
-            .attr('href', '#')
-            .text('x')
-            .attr('title', 'Remove contact')
-          )
-          .append($(document.createElement('a'))
             .addClass('cancel')
             .attr('href', '#')
             .text('c')
@@ -192,6 +191,12 @@ var Chatterbug = {
             .attr('title', 'Unsubscribe')
             .css({display: subscription == 'both' || subscription == 'to' ? null :'none'})
           )
+          .append($(document.createElement('a'))
+            .addClass('remove')
+            .attr('href', '#')
+            .text('x')
+            .attr('title', 'Remove contact')
+          )
       )
       .append(
         $(document.createElement('div'))
@@ -210,6 +215,7 @@ var Chatterbug = {
         name:         $(this).attr('name'),
         subscription: $(this).attr('subscription')
       }
+      Chatterbug.log('Roster item received: {jid: ' + data.jid + ', subscription: ' + data.subscription + ', name: ' + data.name + '}');
       Chatterbug.roster.insertContact(Chatterbug.createContact(data));
     });
   },
@@ -230,16 +236,17 @@ var Chatterbug = {
     Chatterbug.roster.contact(from).find('a.cancel').show();
   },
 
-  denySubscription: function(from){
-    Chatterbug.connection.send($pres({to: from, type: 'unsubscribed'}));
+  denySubscription: function(to){
+    Chatterbug.connection.send($pres({to: to, type: 'unsubscribed'}));
   },
 
-  cancelSubscription: function(from){
-    Chatterbug.denySubscription(from);
-    Chatterbug.roster.contact(from).find('a.cancel').hide();
+  cancelPresenceNotification: function(to){
+    Chatterbug.denySubscription(to);
+    Chatterbug.roster.contact(to).find('a.cancel').hide();
   },
   
   onSubscriptionRequest: function(from){
+    //Chatterbug.log('Subscription request from ' + from);
     if(Chatterbug.config.auto_accept_subscription_request){
       Chatterbug.acceptSubscription(from);
       return;
@@ -268,37 +275,51 @@ var Chatterbug = {
   },
 
   onPresenceReceived: function (presence) {
-    var from = $(presence).attr('from');
-    var ptype   = $(presence).attr('type');
+    var from    = $(presence).attr('from');
+    var type    = $(presence).attr('type');
+    var show    = $(presence).find('show').text();
+    var status  = $(presence).find('status').text();
 
-    if (ptype == 'subscribe') {
+    Chatterbug.log('Presence received from ' + from + '{type: ' + type + ', show: ' + (show ? show : 'null') + ', status: ' + status + '}');
+
+    if (type == 'subscribe'){
       Chatterbug.onSubscriptionRequest(from);
-    } else if (ptype != 'error') {
-      var contact = Chatterbug.roster.contact(from)
-        .removeClass("online")
-        .removeClass("away")
-        .removeClass("offline");
+    }
+    else if(type != 'error'){
+      var contact = Chatterbug.roster.contact(from).remove();
 
-      if (ptype == 'unavailable') {
-        contact.addClass("offline");
-      } else {
-        if(ptype == 'subscribed'){
-          contact.find('a.subscribe').hide();
-          contact.find('a.unsubscribe').show();
-        }
-        else if(ptype == 'unsubscribed'){
-          contact.find('a.subscribe').show();
-          contact.find('a.unsubscribe').hide();
-        }
+      if(type == 'unsubscribe'){
+        contact.find('a.cancel').hide();
+      }
+      else{
+        contact.removeClass("online").removeClass("away").removeClass("offline");
 
-        var show = $(presence).find("show").text();
-        if (show == "" || show == "chat") {
-          contact.addClass("online");
-        } else {
-          contact.addClass("away");
+        if(type == 'unavailable'){
+          show = 'unavailable';
+        }
+        else{
+          if(type == 'subscribed'){
+            contact.find('a.subscribe').hide();
+            contact.find('a.unsubscribe').show();
+          }
+          else if(type == 'unsubscribed'){
+            contact.find('a.subscribe').show();
+            contact.find('a.unsubscribe').hide();
+            show = 'unavailable';
+          }
+        }
+        
+        switch(show){
+          case '':
+          case 'chat':
+            contact.addClass('online'); break;
+          case 'unavailable':
+            contact.addClass('offline'); break;
+          default:
+            contact.addClass('away'); break;
         }
       }
-      contact.remove();
+      //contact.remove();
       Chatterbug.roster.insertContact(contact);
     }
 
@@ -316,6 +337,9 @@ var Chatterbug = {
         jid:          $(this).attr('jid'),
         name:         $(this).attr('name')
       }
+
+      Chatterbug.log('Roster changed: ' + data.jid + '(subscription: ' + data.subscription + ')');
+
       if(data.subscription == 'remove'){
         Chatterbug.onContactRemoved(data.jid);
         return;
@@ -412,17 +436,23 @@ var Chatterbug = {
 
   addContact: function(data) {
     if(!Chatterbug.roster.hasContact(data.jid)){
-      Chatterbug.connection.sendIQ($iq({type: "set"}).c("query", {xmlns: "jabber:iq:roster"}).c("item", data));
+      Chatterbug.connection.sendIQ(
+        $iq({type: "set"})
+          .c("query", {xmlns: "jabber:iq:roster"})
+          .c("item", data)
+      );
       Chatterbug.onContactAdded(data);
     }
     Chatterbug.subscribe(data.jid);
   },
 
   onContactAdded: function(data){
+    //Chatterbug.log('onContactAdded: ' + data.jid);
     Chatterbug.roster.insertContact(Chatterbug.createContact(data));
   },
 
   onContactChanged: function(data){
+    //Chatterbug.log('onContactChanged: ' + data.jid);
     Chatterbug.roster.contact(data.jid).replaceWith(Chatterbug.createContact(data));
   },
 
@@ -436,6 +466,7 @@ var Chatterbug = {
   },
 
   onContactRemoved: function(jid){
+    //Chatterbug.log('onContactRemoved: ' + jid);
     Chatterbug.roster.contact(jid).remove();
   }
 };
@@ -461,7 +492,7 @@ $(document).ready(function () {
   });
 
   Chatterbug.roster.find('a.cancel').live('click', function(event){
-    Chatterbug.cancelSubscription($(event.target).closest('li').find('.jid').text());
+    Chatterbug.cancelPresenceNotification($(event.target).closest('li').find('.jid').text());
     return false;
   });
 
