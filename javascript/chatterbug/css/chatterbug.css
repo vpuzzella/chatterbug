@@ -94,12 +94,31 @@ h1 {
   color: green;
 }
 
-#chatterbug-main-panel .roster .contact .actions{
+#chatterbug-main-panel .roster{
+  padding: 0px 0px 0px 0px;
+  margin: 0px 0px 0px 0px;
+}
+
+#chatterbug-main-panel .roster li:hover{
+    cursor: pointer;
+}
+
+#chatterbug-main-panel .roster .presence{
+  float: left;
+}
+
+#chatterbug-main-panel .roster .actions{
   float: right;
 }
 
-#chatterbug-main-panel .roster .contact:hover{
-    cursor: pointer;
+
+#chatterbug-main-panel .roster .actions a{
+  text-decoration: none;
+}
+
+#chatterbug-main-panel .roster .status{
+  color: darkslategrey;
+  font-size: smaller;
 }
 
 .chatterbug-panel .online {
@@ -112,13 +131,4 @@ h1 {
 
 .chatterbug-panel .offline {
     color: #ccc;
-}
-
-#chatterbug-main-panel ul.roster{
-  padding: 0px 0px 0px 0px;
-  margin: 0px 0px 0px 0px;
-}
-
-#chatterbug-main-panel ul.roster .actions a{
-  text-decoration: none;
 }

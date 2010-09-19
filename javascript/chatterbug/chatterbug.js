@@ -5,7 +5,7 @@ var Chatterbug = {
   roster: null,
 
   log: function(msg){
-    if(console == undefined) return;
+    if((typeof console) == 'undefined') return;
     console.log(msg);
   },
 
@@ -159,52 +159,38 @@ var Chatterbug = {
   },
 
   createContact: function(data){
-    var jid = data.jid
-    var name = data.name
-    var subscription = data.subscription
-    var dom_id = Chatterbug.jidToDomId(jid);
+    var jid           = data.jid
+    var name          = data.name
+    var subscription  = data.subscription
+    var status        = data.status;
+    var dom_id        = Chatterbug.jidToDomId(jid);
 
     return $(document.createElement('li'))
       .attr('id', dom_id)
       .addClass((Chatterbug.roster.contact(jid).attr('class') || "contact offline"))
-      .append(
-        $(document.createElement('div'))
-          .addClass('actions')
-          .append($(document.createElement('a'))
-            .addClass('cancel')
-            .attr('href', '#')
-            .text('c')
-            .attr('title', 'Cancel presence notification')
-            .css({display: subscription == 'both' || subscription == 'from' ? null :'none'})
-          )
-          .append($(document.createElement('a'))
-            .addClass('subscribe')
-            .attr('href', '#')
-            .text('s')
-            .attr('title', 'Subscribe')
-            .css({display: subscription != 'both' && subscription != 'to' ? null :'none'})
-          )
-          .append($(document.createElement('a'))
-            .addClass('unsubscribe')
-            .attr('href', '#')
-            .text('u')
-            .attr('title', 'Unsubscribe')
-            .css({display: subscription == 'both' || subscription == 'to' ? null :'none'})
-          )
-          .append($(document.createElement('a'))
-            .addClass('remove')
-            .attr('href', '#')
-            .text('x')
-            .attr('title', 'Remove contact')
-          )
+      .append($('<div />').addClass('presence'))
+      .append($('<div />').addClass('actions')
+        .append($('<a />', {href: '#', text: 'c', title: 'Cancel presence notification'})
+          .addClass('cancel')
+          .css({display: subscription == 'both' || subscription == 'from' ? null :'none'})
+        )
+        .append($('<a />', {href: '#', text: 's', title: 'Subscribe'})
+          .addClass('subscribe')
+          .css({display: subscription != 'both' && subscription != 'to' ? null :'none'})
+        )
+        .append($('<a />', {href: '#', title: 'Unsubscribe', text: 'u'})
+          .addClass('unsubscribe')
+          .css({display: subscription == 'both' || subscription == 'to' ? null :'none'})
+        )
+        .append($('<a />', {href: '#', text: 'x', title: 'Remove'})
+          .addClass('remove')
+        )
       )
       .append(
-        $(document.createElement('div'))
-          .append($('<div />', {text: name, title: jid})).addClass('name')
-          .append($('<div />', {text: jid, title: name||jid})
-            .addClass('jid')
-            .css('display', (name ? 'none':'block'))
-          )
+        $('<div />').addClass('info')
+          .append($('<div />', {text: name, title: jid}).addClass('name'))
+          .append($('<div />', {text: jid, title: name||jid}).addClass('jid').css('display', (name ? 'none':'block')))
+          .append($('<div />', {text: status}).addClass('status'))
       );
   },
 
@@ -287,7 +273,7 @@ var Chatterbug = {
     }
     else if(type != 'error'){
       var contact = Chatterbug.roster.contact(from).remove();
-
+      
       if(type == 'unsubscribe'){
         contact.find('a.cancel').hide();
       }
@@ -318,8 +304,8 @@ var Chatterbug = {
           default:
             contact.addClass('away'); break;
         }
+        contact.find('.status').text(status);
       }
-      //contact.remove();
       Chatterbug.roster.insertContact(contact);
     }
 
