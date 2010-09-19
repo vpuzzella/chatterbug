@@ -94,6 +94,10 @@ h1 {
   color: green;
 }
 
+#chatterbug-main-panel .content > .presence{
+  border-bottom: 1px solid black;
+}
+
 #chatterbug-main-panel .roster{
   padding: 0px 0px 0px 0px;
   margin: 0px 0px 0px 0px;
@@ -101,6 +105,7 @@ h1 {
 
 #chatterbug-main-panel .roster li:hover{
     cursor: pointer;
+    background-color: lightblue;
 }
 
 #chatterbug-main-panel .roster .presence{
